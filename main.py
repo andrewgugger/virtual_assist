@@ -17,12 +17,12 @@ engine.setProperty('volume', 1.0)
 
 
 
-#speech to text stuff
-model = Model(r"/vosk-model-small-en-us-0.15")
+#speech to text stuff - ENTER THE PATH TO YOUR VOSK MODEL HERE
+model = Model(r"/Users/andrew/PycharmProjects/llama-bot/vosk-model-small-en-us-0.15")
 recognizer = KaldiRecognizer(model, 16000)
-
 mic = pyaudio.PyAudio()
 
+#Change your name and put any knowledge you would like Nova to know before running the program
 template = """
 My name is Andrew and your name is Nova.
 You are my virtual assistant.
@@ -56,10 +56,6 @@ class MainWindow(qtw.QWidget):
         self.my_label.setReadOnly(True)  # Make it read-only so it behaves like a label
         self.my_label.setFixedWidth(1000)  # Set a fixed width
         self.layout().addWidget(self.my_label)
-        # self.my_label = qtw.QLabel("Input text")
-        # # Change font size of label
-        # self.my_label.setFont(qtg.QFont('Helvetica', 18))
-        # self.layout().addWidget(self.my_label)
 
         # Create entry box
         self.my_entry = qtw.QLineEdit()
@@ -79,7 +75,6 @@ class MainWindow(qtw.QWidget):
         self.speech_checkbox.setChecked(True)  # Default to enabled
         self.layout().addWidget(self.speech_checkbox)
 
-        #toggle mic
         # toggle the mic
         mic_button = qtw.QPushButton("mic", clicked=self.mic_toggle)
         self.layout().addWidget(mic_button)
@@ -127,7 +122,6 @@ class MainWindow(qtw.QWidget):
             engine.runAndWait()
         # Clear entry box
         self.my_entry.setText("")
-
 
 app = qtw.QApplication([])
 mw = MainWindow()
