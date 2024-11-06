@@ -10,7 +10,7 @@ pip install pyqt5 langchain langchain_ollama vosk kaldilab pyttsx3 pyaudio
 ### How to use:
 To message Nova, type in the chat box and click the Submit button or hit the enter key. </br>
 You can toggle the speech so Nova's reponses will either be read out or not. </br>
-By clicking on the mic toggle you can enable the microphone and begin speaking. The wake phrase is 'okay nova' you can then speak your query. To end your query, say the word 'ghost' and the Nova will respond to your query.
+By clicking on the mic toggle you can enable the microphone and begin speaking. The wake phrase is 'okay door' you can then speak your query. To end your query, say the word 'ghost' and the Nova will respond to your query. You can change these phrases with the wake_word and end_query_word variables.
 
 ### Voice Commands:
 Say these commands when the microphone is on but before you have said the wake phrase. </br>
