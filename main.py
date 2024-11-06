@@ -185,69 +185,6 @@ class MainWindow(qtw.QWidget):
         finally:
             stream.stop_stream()
             stream.close()
-    # def listen_to_mic(self):
-    #     stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8192)
-    #     stream.start_stream()
-    #
-    #     try:
-    #         while self.listening:
-    #             clean_text = ""
-    #             # Listen for the activation phrase
-    #             while "okay nova" not in clean_text and self.listening:
-    #                 data = stream.read(4096)
-    #                 if "stop listening" in clean_text:
-    #                     print("stop listening")
-    #                     self.mic_checkbox.setChecked(False)
-    #                     clean_text = ""
-    #                     break
-    #                 if "disable speech" in clean_text:
-    #                     print("speech disabled")
-    #                     self.speech_checkbox.setChecked(False)
-    #                     clean_text = ""
-    #                 if "enable speech" in clean_text:
-    #                     print("speech enabled")
-    #                     self.speech_checkbox.setChecked(True)
-    #                     clean_text = ""
-    #                 if recognizer.AcceptWaveform(data):
-    #                     text = recognizer.Result()
-    #                     clean_text += f"{text[14:-3]} "
-    #                     print(f"' {text[14:-3]} '")
-    #
-    #             if not self.listening:  # Check if we should stop listening
-    #                 break
-    #             #once the wake word is said (okay nova) erase the previous words
-    #             #wait for the word ghost
-    #             clean_text = "okay nova "
-    #             # Main listening loop after activation phrase
-    #             while "ghost" not in clean_text and self.listening:
-    #                 data = stream.read(4096)
-    #                 if recognizer.AcceptWaveform(data):
-    #                     text = recognizer.Result()
-    #                     clean_text += f"{text[14:-3]} "
-    #                     print(f"' {text[14:-3]} '")
-    #
-    #             if not self.listening:  # Check if we should stop listening
-    #                 break
-    #
-    #             # Process the recognized text
-    #             clean_text = clean_text[:-6]
-    #             result = chain.invoke({"context": self.conversation, "question": clean_text})
-    #             print("clean_text: " + clean_text)
-    #             print("results " + result)
-    #
-    #             # Emit the result to update the UI
-    #             self.update_conversation_signal.emit(
-    #                 f'\n********************************************************\nYou: {clean_text}\n\n********************************************************\nNova: {result}'
-    #             )
-    #
-    #             if self.speech_checkbox.isChecked():
-    #                 self.speak_signal.emit(result)
-    #             else:
-    #                 continue
-    #
-    #     finally:
-    #         stream.stop_stream()
-    #         stream.close()
 
     def speak_text(self, text):
         #run the speech in a separate thread
