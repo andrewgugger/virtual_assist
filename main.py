@@ -1,6 +1,4 @@
 # PyQt5:
-from distutils.command.clean import clean
-
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as qtg
 import PyQt5.QtCore as qtc
@@ -9,7 +7,6 @@ from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 # Speech
 import pyttsx3
-from requests.packages import target
 # Speech to text imports
 from vosk import Model, KaldiRecognizer
 import pyaudio
@@ -17,17 +14,24 @@ import threading
 import sys
 import time
 
+#fill out these variables:
+vosk_model_path = r"/Users/andrew/PycharmProjects/llama-bot/vosk-model-small-en-us-0.15"
+wake_word = "okay door"
+query_end_word = "ghost"
+
 # Text to speech setup
 engine = pyttsx3.init()
 engine.setProperty('rate', 175)
 engine.setProperty('volume', 1.0)
 
 # Speech to text setup - ENTER THE PATH TO YOUR VOSK MODEL HERE
-model = Model(r"/Users/andrew/PycharmProjects/llama-bot/vosk-model-small-en-us-0.15")
+model = Model(vosk_model_path)
 recognizer = KaldiRecognizer(model, 16000)
 mic = pyaudio.PyAudio()
 
-# Change your name and put any knowledge you would like Nova to know before running the program
+# Add any knowledge you would like the virtual assistant to know
+context = ""
+question = ""
 template = """
 My name is Andrew and your name is Nova.
 You are my virtual assistant.
@@ -120,10 +124,10 @@ class MainWindow(qtw.QWidget):
             while self.listening:
                 clean_text = ""
                 # Listen for the activation phrase
-                while "okay nova" not in clean_text and self.listening:
+                while wake_word not in clean_text and self.listening:
                     try:
                         data = stream.read(2048, exception_on_overflow=False)  # Lower buffer size and handle overflow
-                        if "stop listening" or "disable microphone" in clean_text:
+                        if "stop listening" in clean_text or "disable microphone" in clean_text:
                             print("stop listening")
                             self.mic_checkbox.setChecked(False)
                             clean_text = ""
@@ -150,7 +154,7 @@ class MainWindow(qtw.QWidget):
                     break
 
                 clean_text = "okay nova "
-                while "ghost" not in clean_text and self.listening:
+                while query_end_word not in clean_text and self.listening:
                     try:
                         data = stream.read(2048, exception_on_overflow=False)
                         if recognizer.AcceptWaveform(data):
