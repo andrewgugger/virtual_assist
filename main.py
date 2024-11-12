@@ -13,11 +13,13 @@ import pyaudio
 import threading
 import sys
 import time
+from datetime import datetime
 
 #fill out these variables:
-vosk_model_path = r"/Users/andrew/PycharmProjects/llama-bot/vosk-model-small-en-us-0.15"
+vosk_model_path = r"C:/Users/I570399/PycharmProjects/virtual_assist/vosk-model-small-en-us-0.15/vosk-model-small-en-us-0.15"
 wake_word = "okay door"
 query_end_word = "ghost"
+read_files_path = "C:/Users/I570399/PycharmProjects/virtual_assist/read_files/file.txt"
 
 # Text to speech setup
 engine = pyttsx3.init()
@@ -35,7 +37,6 @@ question = ""
 template = """
 My name is Andrew and your name is Nova.
 You are my virtual assistant.
-Sometimes I will use a speech-to-text model that is not always accurate so you might have to try and infer what I mean based on the context.
 Answer the question below.
 
 Here is the conversation history: {context}
@@ -101,7 +102,27 @@ class MainWindow(qtw.QWidget):
         self.update_conversation_signal.connect(self.update_conversation)
         self.speak_signal.connect(self.speak_text)
 
-        self.listening = False  # To track if we are listening to the mic
+        #track if we are listening to mic.
+        #need to change this to false when mic is off by default
+        self.listening = False
+        #comment below out if starting with mic off by default
+        # self.mic_thread = threading.Thread(target=self.listen_to_mic, daemon=True)
+        # self.mic_thread.start()
+        # To track if we are listening to the mic
+
+    def get_time(self):
+        current_time = datetime.now().strftime("%I:%M %p")
+        message = self.my_entry.text() + " Here is the current time to answer the question: " + current_time
+        return message
+
+    #command to read files
+    def read_files(self):
+        with open(read_files_path, "r") as file:
+            content = file.read()
+        message = self.my_entry.text() + " The content of the file is within these brackets {}: {" + content + "}"
+        print("**file reading** " + message)
+        return message
+
 
     def mic_toggle(self, state):
         if state == qtc.Qt.Checked:
@@ -131,15 +152,26 @@ class MainWindow(qtw.QWidget):
                             print("stop listening")
                             self.mic_checkbox.setChecked(False)
                             clean_text = ""
+                            self.speak_signal.emit("microphone off")
                             break
                         if "disable speech" in clean_text:
                             print("speech disabled")
                             self.speech_checkbox.setChecked(False)
+                            self.speak_signal.emit("Speech disabled")
                             clean_text = ""
                         if "enable speech" in clean_text:
                             print("speech enabled")
                             self.speech_checkbox.setChecked(True)
+                            self.speak_signal.emit("Speech enabled")
                             clean_text = ""
+                        #read files from folder
+                        # if "read this file" in clean_text:
+                        #     with open(read_files_path, "r") as file:
+                        #         content = file.read()
+                        #         reading_work = True
+                        #         clean_text = wake_word
+                        #         print(" test" + clean_text)
+                        #         break
                         if recognizer.AcceptWaveform(data):
                             text = recognizer.Result()
                             clean_text += f"{text[14:-3]} "
@@ -171,7 +203,21 @@ class MainWindow(qtw.QWidget):
                     break
 
                 clean_text = clean_text[:-6]
-                result = chain.invoke({"context": self.conversation, "question": clean_text})
+                message = clean_text.lower()
+                if "what time is it" in clean_text:
+                    message += self.get_time()
+
+                if "read this file" in message:
+                    message += self.read_files()
+
+
+
+
+
+                print("TEST " + message)
+                # if reading_work:
+                #     clean_text += "Here is the content of the text file:\n " + content
+                result = chain.invoke({"context": self.conversation, "question": message})
                 print("clean_text: " + clean_text)
                 print("results " + result)
 
@@ -217,10 +263,23 @@ class MainWindow(qtw.QWidget):
         self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
         self.my_entry.setText("")
 
+
     def press_it(self):
-        # Update conversation with new input
-        result = chain.invoke({"context": self.conversation, "question": self.my_entry.text()})
+        #Update conversation with new input
+        original = self.my_entry.text()
+        message = original.lower()
+        if "read this file" in message:
+            message = self.read_files()
+
+
+        if "what time is it" in message:
+            message = self.get_time()
+
+
+
+        result = chain.invoke({"context": self.conversation, "question": message})
         print(result)
+        self.my_entry.setText(original)
         self.conversation += f'\n********************************************************\nYou: {self.my_entry.text()}\n\n********************************************************\nNova: {result}'
         # Update label with full conversation
         self.my_label.setText(self.conversation)
@@ -232,6 +291,8 @@ class MainWindow(qtw.QWidget):
             engine.runAndWait()
         # Clear entry box
         self.my_entry.setText("")
+        oringal = ""
+        message = ""
 
 
 app = qtw.QApplication([])
