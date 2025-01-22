@@ -235,7 +235,7 @@ class MainWindow(qtw.QWidget):
                             self.ask_change_model()
                             change_model_flag = True
                             clean_text = ""
-                        elif "llama" in clean_text and change_model_flag:
+                        elif "lama" in clean_text and change_model_flag:
                             print("**CHANGING LLAMA**")
                             self.change_model("llama3.2")
                             change_model_flag = False
