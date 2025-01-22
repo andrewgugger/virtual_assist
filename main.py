@@ -15,11 +15,16 @@ import sys
 import time
 from datetime import datetime
 
+# For printing each letter
+from PyQt5.QtCore import QTimer
+
 #fill out these variables:
-vosk_model_path = r"C:/Users/I570399/PycharmProjects/virtual_assist/vosk-model-small-en-us-0.15/vosk-model-small-en-us-0.15"
+# vosk_model_path = r"C:/Users/I570399/PycharmProjects/virtual_assist/vosk-model-small-en-us-0.15/vosk-model-small-en-us-0.15"
+vosk_model_path = (r"/Users/andrew/PycharmProjects/llama-bot/vosk-model-small-en-us-0.15")
 wake_word = "okay door"
 query_end_word = "ghost"
-read_files_path = "C:/Users/I570399/PycharmProjects/virtual_assist/read_files/file.txt"
+#read_files_path = "C:/Users/I570399/PycharmProjects/virtual_assist/read_files/file.txt"
+read_files_path = "/Users/andrew/PycharmProjects/llama-bot/read_files/file.txt"
 
 # Text to speech setup
 engine = pyttsx3.init()
@@ -54,11 +59,14 @@ print("CURRENT_MODEL = " + str(llm_model))
 prompt = ChatPromptTemplate.from_template(template)
 chain = prompt | llm_model
 change_model_flag = False
+# Active typing flag change to False if you don't want it to type out it's responses
+active_typing = False
 
 class MainWindow(qtw.QWidget):
-    update_conversation_signal = qtc.pyqtSignal(str)
+    update_conversation_signal = qtc.pyqtSignal(str, str)
     speak_signal = qtc.pyqtSignal(str)
     clear_chat_signal = qtc.pyqtSignal()
+    update_title_signal = qtc.pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -119,11 +127,18 @@ class MainWindow(qtw.QWidget):
         # Clear chat
         self.clear_chat_signal.connect(self.clear_chat_gui)
 
+        # Update title
+        self.update_title_signal.connect(self.update_window_title)  # Connect the signal to the method
+
+    def update_window_title(self, title):
+        self.setWindowTitle(title)  # Method to safely update the window title
+
     def list_model(self, text):
+        global model_title
         text = "list models"
-        result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1\nCurrently, "+ model_title +" is selected."
+        result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1:7b\nCurrently, "+ model_title +" is selected."
         self.update_conversation_signal.emit(
-            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: {result}'
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: ', result
         )
         if self.speech_checkbox.isChecked():
             self.speak_signal.emit(result)
@@ -145,26 +160,51 @@ class MainWindow(qtw.QWidget):
     def ask_change_model(self):
         global model_title  # Declare global variables to modify them.
         text = "Change model"
-        result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1\nCurrently, " + model_title + " is selected.\nWhat model would you like to choose?"
+        result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1:7b\nCurrently, " + model_title + " is selected.\nWhat model would you like to choose?"
         self.update_conversation_signal.emit(
-            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: {result}'
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: ', result
         )
 
 
-    def change_model(self, model_title):
+    def change_model(self, model_name):
+        mic = False
+        if self.mic_checkbox.isChecked():
+            mic = True
+            self.mic_checkbox.setChecked(False)
+
         self.clear_chat() # Clear the chat before switching models
-        global llm_model, prompt, chain  # Declare global variables to modify them.
-        print(model_title)
+        global llm_model, prompt, chain, model_title  # Declare global variables to modify them.
+        model_title = model_name
+        print("model title " + model_title)
         llm_model = OllamaLLM(model=model_title)  # Updating the model
         prompt = ChatPromptTemplate.from_template(template)  # Reinitialize the prompt
         chain = prompt | llm_model  # Reinitalize the chain
-        self.setWindowTitle(str(model_title))
+        self.update_title_signal.emit(model_title)  # Emit the signal to update the title
         print("**MODEL CHANGED**")
         text = model_title
         result = "Model has been changed to: " + model_title
         self.update_conversation_signal.emit(
-            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: {result}'
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: ', result
         )
+        if mic:
+            self.mic_checkbox.setChecked(True)
+
+    def active_typing_toggle(self, command):
+        global active_typing
+        if "stop" in command or "off" in command:
+            active_typing = False
+            text = "Turn off active typing."
+            result = "Active typing has been turned off."
+        else:
+            active_typing = True
+            text = "Turn on active typing."
+            result = "Active typing has been turned on."
+        self.update_conversation_signal.emit(
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: ', result
+        )
+        if self.speech_checkbox.isChecked():
+            self.speak_signal.emit(result)
+
 
     def get_time(self):
         current_time = datetime.now().strftime("%I:%M %p")
@@ -235,14 +275,14 @@ class MainWindow(qtw.QWidget):
                             self.ask_change_model()
                             change_model_flag = True
                             clean_text = ""
-                        elif "lama" in clean_text and change_model_flag:
+                        if "lama" in clean_text and change_model_flag:
                             print("**CHANGING LLAMA**")
                             self.change_model("llama3.2")
                             change_model_flag = False
                             clean_text = ""
-                        elif "deep" in clean_text and change_model_flag:
+                        if "deep" in clean_text and change_model_flag:
                             print("**CHANGING deepseek**")
-                            self.change_model("deepseek-r1")
+                            self.change_model("deepseek-r1:7b")
                             change_model_flag = False
                             clean_text = ""
 
@@ -295,7 +335,7 @@ class MainWindow(qtw.QWidget):
                 print("results " + result)
 
                 self.update_conversation_signal.emit(
-                    f'\n********************************************************\nYou: {clean_text}\n\n********************************************************\nNova: {result}'
+                    f'\n********************************************************\nYou: {clean_text}\n\n********************************************************\nNova: ', result
                 )
 
                 if self.speech_checkbox.isChecked():
@@ -325,13 +365,24 @@ class MainWindow(qtw.QWidget):
             # self.mic_thread = threading.Thread(target=self.listen_to_mic, daemon=True)
             # self.mic_thread.start()
 
-    def update_conversation(self, text):
+    def update_conversation(self, text, response):
+        global active_typing # this will disable/enable active typing
         # Update the UI with new conversation data
         self.conversation += text
         self.my_label.setText(self.conversation)
+
+        # This is for typing out the answer
+        if active_typing:
+            self.conversation += response
+            self.text_phrase = list(response)  # Convert text to a list of characters
+            # self.my_label.clear()  # Prepare for the typing effect ???????
+            self.insert_phrase_char()  # Start typing out each character
+        else:
+            self.conversation += response
+            self.my_label.setText(self.conversation)
+
         self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
         self.my_entry.setText("")
-
 
     def press_it(self):
         #Update conversation with new input
@@ -361,27 +412,37 @@ class MainWindow(qtw.QWidget):
             print("**CHANGING LLAMA**")
             self.change_model("llama3.2")
             change_model_flag = False
-        elif "deepseek-r1" in message and change_model_flag:
+        elif "deepseek-r1:7b" in message and change_model_flag:
             print("**CHANGING deepseek**")
-            self.change_model("deepseek-r1")
+            self.change_model("deepseek-r1:7b")
             change_model_flag = False
-
+        elif "active typing" in message:
+            self.active_typing_toggle(message)
         else:
             result = chain.invoke({"context": self.conversation, "question": message})
             print(result)
             self.my_entry.setText(original)
-            self.conversation += f'\n********************************************************\nYou: {self.my_entry.text()}\n\n********************************************************\nNova: {result}'
-            # Update label with full conversation
-            self.my_label.setText(self.conversation)
-            self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
-
+            self.update_conversation_signal.emit(
+                f'\n********************************************************\nYou: {self.my_entry.text()}\n\n********************************************************\nNova: ', result
+            )
             # Check if speech is toggled:
             if self.speech_checkbox.isChecked():
                 self.speak_signal.emit(result)
             # Clear entry box
             self.my_entry.setText("")
 
-
+    def insert_phrase_char(self):
+        """Inserts each character one by one with a delay."""
+        if self.text_phrase:
+            cursor = self.my_label.textCursor()
+            cursor.movePosition(qtg.QTextCursor.End)
+            self.my_label.setTextCursor(cursor)
+            next_char = self.text_phrase.pop(0)
+            cursor.insertText(next_char)
+            QTimer.singleShot(35, self.insert_phrase_char)  # Delay between characters
+        else:
+            # Auto-scroll to the bottom once typing is complete
+            self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
 
 app = qtw.QApplication([])
 mw = MainWindow()
