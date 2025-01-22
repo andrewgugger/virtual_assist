@@ -46,7 +46,8 @@ Question: {question}
 
 Answer:
 """
-llm_model = OllamaLLM(model="llama3.2")
+model_title = "llama3.2"
+llm_model = OllamaLLM(model=model_title)
 #llm_model = OllamaLLM(model="deepseek-r1")
 print("*************INITIALIZING CURRENT MODEL*************")
 print("CURRENT_MODEL = " + str(llm_model))
@@ -61,7 +62,7 @@ class MainWindow(qtw.QWidget):
     def __init__(self):
         super().__init__()
         # Add a title
-        self.setWindowTitle(str(llm_model))
+        self.setWindowTitle(str(model_title))
 
         # Set layout
         self.setLayout(qtw.QVBoxLayout())
@@ -114,6 +115,16 @@ class MainWindow(qtw.QWidget):
         # self.mic_thread.start()
         # To track if we are listening to the mic
 
+    def list_model(self, text):
+        text = "list models"
+        result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1\nCurrently, "+ model_title +" is selected."
+        self.update_conversation_signal.emit(
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: {result}'
+        )
+        if self.speech_checkbox.isChecked():
+            self.speak_signal.emit(result)
+
+
     def get_time(self):
         current_time = datetime.now().strftime("%I:%M %p")
         message = self.my_entry.text() + " Here is the current time to answer the question: " + current_time
@@ -161,13 +172,17 @@ class MainWindow(qtw.QWidget):
                         if "disable speech" in clean_text:
                             print("speech disabled")
                             self.speech_checkbox.setChecked(False)
-                            self.speak_signal.emit("Speech disabled")
+                            #self.speak_signal.emit("Speech disabled")
                             clean_text = ""
                         if "enable speech" in clean_text:
                             print("speech enabled")
                             self.speech_checkbox.setChecked(True)
                             self.speak_signal.emit("Speech enabled")
                             clean_text = ""
+                        if "list models" in clean_text:
+                            print("**LISTING MODELS**")
+                            self.list_model(clean_text)
+                            clean_text=""
 
                         if recognizer.AcceptWaveform(data):
                             text = recognizer.Result()
@@ -228,7 +243,6 @@ class MainWindow(qtw.QWidget):
 
     def speak(self, text):
         #disable microphone while speaking
-        print("SPEAK FUNCTINO CALLED")
         self.listening = False
         # wait for mic thread to finish if running
         if hasattr(self, 'mic_thread') and self.mic_thread.is_alive():
@@ -266,21 +280,24 @@ class MainWindow(qtw.QWidget):
         if "what time is it" in message:
             message = self.get_time()
 
+        if "list models" in message:
+            print("**LISTING MODELS**")
+            self.list_model(message)
+            clean_text = ""
+        else:
+            result = chain.invoke({"context": self.conversation, "question": message})
+            print(result)
+            self.my_entry.setText(original)
+            self.conversation += f'\n********************************************************\nYou: {self.my_entry.text()}\n\n********************************************************\nNova: {result}'
+            # Update label with full conversation
+            self.my_label.setText(self.conversation)
+            self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
 
-
-        result = chain.invoke({"context": self.conversation, "question": message})
-        print(result)
-        self.my_entry.setText(original)
-        self.conversation += f'\n********************************************************\nYou: {self.my_entry.text()}\n\n********************************************************\nNova: {result}'
-        # Update label with full conversation
-        self.my_label.setText(self.conversation)
-        self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
-
-        # Check if speech is toggled:
-        if self.speech_checkbox.isChecked():
-            self.speak_signal.emit(result)
-        # Clear entry box
-        self.my_entry.setText("")
+            # Check if speech is toggled:
+            if self.speech_checkbox.isChecked():
+                self.speak_signal.emit(result)
+            # Clear entry box
+            self.my_entry.setText("")
 
 
 
