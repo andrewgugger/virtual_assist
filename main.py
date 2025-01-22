@@ -53,11 +53,12 @@ print("*************INITIALIZING CURRENT MODEL*************")
 print("CURRENT_MODEL = " + str(llm_model))
 prompt = ChatPromptTemplate.from_template(template)
 chain = prompt | llm_model
-
+change_model_flag = False
 
 class MainWindow(qtw.QWidget):
     update_conversation_signal = qtc.pyqtSignal(str)
     speak_signal = qtc.pyqtSignal(str)
+    clear_chat_signal = qtc.pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -115,6 +116,9 @@ class MainWindow(qtw.QWidget):
         # self.mic_thread.start()
         # To track if we are listening to the mic
 
+        # Clear chat
+        self.clear_chat_signal.connect(self.clear_chat_gui)
+
     def list_model(self, text):
         text = "list models"
         result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1\nCurrently, "+ model_title +" is selected."
@@ -124,6 +128,43 @@ class MainWindow(qtw.QWidget):
         if self.speech_checkbox.isChecked():
             self.speak_signal.emit(result)
 
+    def clear_chat(self):
+        print("**CLEARING CHAT**")
+        self.conversation = ""
+        print("self conversation")
+        self.clear_chat_signal.emit()
+        print("label")
+        #self.my_label.verticalScrollBar().setValue(self.my_label.verticalScrollBar().maximum())
+        self.my_entry.setText("")
+        print("**CHAT CLEARED**")
+
+    def clear_chat_gui(self):
+        self.my_label.setText(self.conversation)
+        self.my_entry.setText("")
+
+    def ask_change_model(self):
+        global model_title  # Declare global variables to modify them.
+        text = "Change model"
+        result = "Here are a list of the models available:\nllama3.2\ndeepseek-r1\nCurrently, " + model_title + " is selected.\nWhat model would you like to choose?"
+        self.update_conversation_signal.emit(
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: {result}'
+        )
+
+
+    def change_model(self, model_title):
+        self.clear_chat() # Clear the chat before switching models
+        global llm_model, prompt, chain  # Declare global variables to modify them.
+        print(model_title)
+        llm_model = OllamaLLM(model=model_title)  # Updating the model
+        prompt = ChatPromptTemplate.from_template(template)  # Reinitialize the prompt
+        chain = prompt | llm_model  # Reinitalize the chain
+        self.setWindowTitle(str(model_title))
+        print("**MODEL CHANGED**")
+        text = model_title
+        result = "Model has been changed to: " + model_title
+        self.update_conversation_signal.emit(
+            f'\n********************************************************\nYou: {text}\n\n********************************************************\nNova: {result}'
+        )
 
     def get_time(self):
         current_time = datetime.now().strftime("%I:%M %p")
@@ -155,6 +196,7 @@ class MainWindow(qtw.QWidget):
     def listen_to_mic(self):
         stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=2048)
         stream.start_stream()
+        global change_model_flag
 
         try:
             while self.listening:
@@ -183,6 +225,28 @@ class MainWindow(qtw.QWidget):
                             print("**LISTING MODELS**")
                             self.list_model(clean_text)
                             clean_text=""
+                        if "clear chat" in clean_text or "clean chat" in clean_text:
+                            print("**PREPARING TO CLEAR CHAT**")
+                            self.clear_chat()
+                            clean_text = ""
+                            print("what about here?")
+                        if "change model" in clean_text:
+                            print("**ASK CHANGE MODEL**")
+                            self.ask_change_model()
+                            change_model_flag = True
+                            clean_text = ""
+                        elif "llama" in clean_text and change_model_flag:
+                            print("**CHANGING LLAMA**")
+                            self.change_model("llama3.2")
+                            change_model_flag = False
+                            clean_text = ""
+                        elif "deep" in clean_text and change_model_flag:
+                            print("**CHANGING deepseek**")
+                            self.change_model("deepseek-r1")
+                            change_model_flag = False
+                            clean_text = ""
+
+
 
                         if recognizer.AcceptWaveform(data):
                             text = recognizer.Result()
@@ -273,6 +337,7 @@ class MainWindow(qtw.QWidget):
         #Update conversation with new input
         original = self.my_entry.text()
         message = original.lower()
+        global change_model_flag
         if "read this file" in message:
             message = self.read_files()
 
@@ -280,10 +345,27 @@ class MainWindow(qtw.QWidget):
         if "what time is it" in message:
             message = self.get_time()
 
+
+
         if "list models" in message:
             print("**LISTING MODELS**")
             self.list_model(message)
-            clean_text = ""
+        elif "clear chat" in message or "clean chat" in message:
+            print("**PREPARING TO CLEAR CHAT**")
+            self.clear_chat()
+        elif "change model" in message:
+            print("**ASK CHANGE MODEL**")
+            self.ask_change_model()
+            change_model_flag = True
+        elif "llama3" in message and change_model_flag:
+            print("**CHANGING LLAMA**")
+            self.change_model("llama3.2")
+            change_model_flag = False
+        elif "deepseek-r1" in message and change_model_flag:
+            print("**CHANGING deepseek**")
+            self.change_model("deepseek-r1")
+            change_model_flag = False
+
         else:
             result = chain.invoke({"context": self.conversation, "question": message})
             print(result)
