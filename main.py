@@ -37,6 +37,7 @@ question = ""
 template = """
 My name is Andrew and your name is Nova.
 You are my virtual assistant.
+Try to answer all questions directly in no more than 3-4 sentences.
 Answer the question below.
 
 Here is the conversation history: {context}
@@ -45,9 +46,12 @@ Question: {question}
 
 Answer:
 """
-model = OllamaLLM(model="llama3.2")
+llm_model = OllamaLLM(model="llama3.2")
+#llm_model = OllamaLLM(model="deepseek-r1")
+print("*************INITIALIZING CURRENT MODEL*************")
+print("CURRENT_MODEL = " + str(llm_model))
 prompt = ChatPromptTemplate.from_template(template)
-chain = prompt | model
+chain = prompt | llm_model
 
 
 class MainWindow(qtw.QWidget):
@@ -57,7 +61,7 @@ class MainWindow(qtw.QWidget):
     def __init__(self):
         super().__init__()
         # Add a title
-        self.setWindowTitle("Nova")
+        self.setWindowTitle(str(llm_model))
 
         # Set layout
         self.setLayout(qtw.QVBoxLayout())
@@ -100,7 +104,7 @@ class MainWindow(qtw.QWidget):
 
         # Signal to update the conversation in the main thread
         self.update_conversation_signal.connect(self.update_conversation)
-        self.speak_signal.connect(self.speak_text)
+        self.speak_signal.connect(self.speak)
 
         #track if we are listening to mic.
         #need to change this to false when mic is off by default
@@ -164,14 +168,7 @@ class MainWindow(qtw.QWidget):
                             self.speech_checkbox.setChecked(True)
                             self.speak_signal.emit("Speech enabled")
                             clean_text = ""
-                        #read files from folder
-                        # if "read this file" in clean_text:
-                        #     with open(read_files_path, "r") as file:
-                        #         content = file.read()
-                        #         reading_work = True
-                        #         clean_text = wake_word
-                        #         print(" test" + clean_text)
-                        #         break
+
                         if recognizer.AcceptWaveform(data):
                             text = recognizer.Result()
                             clean_text += f"{text[14:-3]} "
@@ -211,9 +208,6 @@ class MainWindow(qtw.QWidget):
                     message += self.read_files()
 
 
-
-
-
                 print("TEST " + message)
                 # if reading_work:
                 #     clean_text += "Here is the content of the text file:\n " + content
@@ -232,13 +226,9 @@ class MainWindow(qtw.QWidget):
             stream.stop_stream()
             stream.close()
 
-    def speak_text(self, text):
-        #run the speech in a separate thread
-        #threading.Thread(target=self.speak, args=(text,), daemon=True).start()
-        self.speak(text)
-
     def speak(self, text):
         #disable microphone while speaking
+        print("SPEAK FUNCTINO CALLED")
         self.listening = False
         # wait for mic thread to finish if running
         if hasattr(self, 'mic_thread') and self.mic_thread.is_alive():
@@ -250,6 +240,7 @@ class MainWindow(qtw.QWidget):
 
         # Enable mic listenitng after speaking
         if self.mic_checkbox.isChecked():
+            print("mic checked")
             print(True)
             #self.mic_checkbox.stateChanged.connect(self.mic_toggle)
             self.mic_toggle(qtc.Qt.Checked)
@@ -287,12 +278,10 @@ class MainWindow(qtw.QWidget):
 
         # Check if speech is toggled:
         if self.speech_checkbox.isChecked():
-            engine.say(result)
-            engine.runAndWait()
+            self.speak_signal.emit(result)
         # Clear entry box
         self.my_entry.setText("")
-        oringal = ""
-        message = ""
+
 
 
 app = qtw.QApplication([])
