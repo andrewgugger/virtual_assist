@@ -17,5 +17,8 @@ Say these commands when the microphone is on but before you have said the wake p
 - "disable speech" This will disable the speech function. </br>
 - "enable speech" This will enable the speech function. </br>
 - "stop listening" or "disable microphone" will turn off the microphone and the app will no longer be listening. </br>
+
+### LLM Commands:
+Say or type these commands (after wake phrase if mic is on):
 - "read this file" will read a file set in the path read_files_path variable. You can then ask the virutal assistant questions about this file.
 - "what time is it" The virtual assistant will give you the current time.
