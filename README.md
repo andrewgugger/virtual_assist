@@ -23,10 +23,12 @@ Say these commands when the microphone is on but before you have said the wake p
 - "list models" will list the models available to change while the program is running.
 - "change model" will list the models and allow you to change the model. Respond with "deep" for deepseek-r1 and "lama" for llama3.2
 
-### LLM Commands:
+### Text Commands:
 Type these commands:
 - "read this file" will read a file set in the path read_files_path variable. You can then ask the virutal assistant questions about this file.
 - "what time is it" The virtual assistant will give you the current time.
 - "clear chat" or "clean chat" will delete the conversation history so the LLM and the user cannot see it. </br>
 - "list models" will list the models available to change while the program is running.
 - "change model" will list the models and allow you to change the model. Respond with the exact name of the model when typing (deepseek-r1 or llama3.2).
+- "turn off active typing" or "stop active typing" will disable the feature where the LLM's reponse is typed.
+- "turn on active typing" will enable the feature where the LLM's reponse is typed. It is off by default.
